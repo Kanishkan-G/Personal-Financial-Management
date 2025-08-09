@@ -1,0 +1,9 @@
+/target
+/.idea
+*.iml
+*.log
+*.class
+*.jar
+.DS_Store
+*.db
+*.sqlite
