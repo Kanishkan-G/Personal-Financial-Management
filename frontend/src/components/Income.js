@@ -1,3 +1,4 @@
+// frontend/src/components/Income.js
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import moment from 'moment'; // Import moment.js for date formatting
@@ -6,7 +7,7 @@ function Income() {
   const [income, setIncome] = useState([]);
   const [totalIncome, setTotalIncome] = useState(0);
   const [form, setForm] = useState({
-    type: 'Income', // Default to 'Income'
+    type: 'Income Type', // Default to 'Income Type'
     amount: '',
     date: ''
   });
@@ -18,7 +19,10 @@ function Income() {
   const fetchIncome = async () => {
     try {
       const res = await axios.get('http://localhost:8080/api/transactions');
-      const incomeData = res.data.filter(transaction => transaction.type === 'Income' || transaction.type === 'Bonus' || transaction.type === 'Other');
+      // Filter for specific income-related types
+      const incomeData = res.data.filter(transaction =>
+        ['Income Type', 'Salary', 'Bonus', 'Gift', 'Other Income'].includes(transaction.type)
+      );
       setIncome(incomeData);
       const total = incomeData.reduce((acc, curr) => acc + curr.amount, 0);
       setTotalIncome(total);
@@ -39,7 +43,7 @@ function Income() {
         amount: parseFloat(form.amount),
         type: form.type,
       });
-      setForm({ type: 'Income', amount: '', date: '' }); // Reset the form
+      setForm({ type: 'Income Type', amount: '', date: '' }); // Reset the form
       fetchIncome(); // Fetch the updated list of transactions
     } catch (error) {
       console.error('Error posting income', error);
@@ -68,9 +72,11 @@ function Income() {
             onChange={handleChange}
             required
           >
-            <option value="Income">Income</option>
+            <option value="Income Type">Income Type</option>
+            <option value="Salary">Salary</option>
             <option value="Bonus">Bonus</option>
-            <option value="Other">Other</option>
+            <option value="Gift">Gift</option>
+            <option value="Other Income">Other Income</option>
           </select>
           <input
             type="number"
@@ -101,7 +107,7 @@ function Income() {
           {income.map((incomeItem) => (
             <div className="income-card" key={incomeItem.id}>
               <h4>{incomeItem.type}: ₹{incomeItem.amount}</h4>
-              <p>Date: {moment(incomeItem.date).format('DD-MM-YYYY')}</p> {/* Format the date here */}
+              <p>Date: {moment(incomeItem.date).format('DD-MM-YYYY')}</p>
               <button onClick={() => handleDelete(incomeItem.id)} className="delete-btn">
                 Delete
               </button>
