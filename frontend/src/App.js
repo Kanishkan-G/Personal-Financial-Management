@@ -1,17 +1,15 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import "./App.css";
 
 function App() {
   const [transactions, setTransactions] = useState([]);
-  const [form, setForm] = useState({
-    category: "",
-    type: "Expense",
-    amount: "",
-    date: "",
-  });
+  const [summary, setSummary] = useState({});
 
   useEffect(() => {
     fetchTransactions();
+    fetchSummary();
   }, []);
 
   const fetchTransactions = async () => {
@@ -23,78 +21,96 @@ function App() {
     }
   };
 
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const fetchSummary = async () => {
     try {
-      await axios.post("http://localhost:8080/api/transactions", {
-        ...form,
-        amount: parseFloat(form.amount),
-      });
-      setForm({ category: "", type: "Expense", amount: "", date: "" });
-      fetchTransactions();
+      const res = await axios.get("http://localhost:8080/api/transactions/summary");
+      setSummary(res.data);
     } catch (error) {
-      console.error("Error adding transaction", error);
+      console.error("Error fetching summary", error);
     }
   };
 
+  // Data for charts
+  const incomeData = transactions
+    .filter(t => t.type === "Income")
+    .map(t => ({
+      date: t.date,
+      amount: t.amount,
+    }));
+
+  const expenseData = transactions
+    .filter(t => t.type === "Expense")
+    .map(t => ({
+      date: t.date,
+      amount: t.amount,
+    }));
+
   return (
-    <div style={{ maxWidth: 600, margin: "auto", padding: 20 }}>
-      <h1>Personal Finance Tracker</h1>
+    <div className="container">
+      <div className="sidebar">
+        <h2>Dashboard</h2>
+        <ul>
+          <li>Dashboard</li>
+          <li>Income</li>
+          <li>Expense</li>
+        </ul>
+      </div>
+      <div className="main-content">
+        <div className="card overview">
+          <div className="overview-item">
+            <h3>Balance</h3>
+            <p>₹{summary.balance}</p> {/* Changed to ₹ */}
+          </div>
+          <div className="overview-item">
+            <h3>Total Income</h3>
+            <p>₹{summary.totalIncome}</p> {/* Changed to ₹ */}
+          </div>
+          <div className="overview-item">
+            <h3>Total Expense</h3>
+            <p>₹{summary.totalExpenses}</p> {/* Changed to ₹ */}
+          </div>
+        </div>
 
-      <form onSubmit={handleSubmit} style={{ marginBottom: 20 }}>
-        <input
-          name="category"
-          value={form.category}
-          onChange={handleChange}
-          placeholder="Category"
-          required
-        />
-        <select name="type" value={form.type} onChange={handleChange}>
-          <option value="Income">Income</option>
-          <option value="Expense">Expense</option>
-        </select>
-        <input
-          name="amount"
-          type="number"
-          value={form.amount}
-          onChange={handleChange}
-          placeholder="Amount"
-          required
-        />
-        <input
-          name="date"
-          type="date"
-          value={form.date}
-          onChange={handleChange}
-          required
-        />
-        <button type="submit">Add Transaction</button>
-      </form>
+        <div className="charts">
+          <div className="chart">
+            <h3>Income Chart</h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={incomeData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" />
+                <YAxis tickFormatter={(value) => `₹${value}`} /> {/* Changed to ₹ */}
+                <Tooltip />
+                <Legend />
+                <Line type="monotone" dataKey="amount" stroke="green" />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="chart">
+            <h3>Expense Chart</h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={expenseData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" />
+                <YAxis tickFormatter={(value) => `₹${value}`} /> {/* Changed to ₹ */}
+                <Tooltip />
+                <Legend />
+                <Line type="monotone" dataKey="amount" stroke="red" />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
 
-      <table border="1" width="100%" cellPadding="5" cellSpacing="0">
-        <thead>
-          <tr>
-            <th>Date</th>
-            <th>Category</th>
-            <th>Type</th>
-            <th>Amount</th>
-          </tr>
-        </thead>
-        <tbody>
-          {transactions.map((t) => (
-            <tr key={t.id}>
-              <td>{t.date}</td>
-              <td>{t.category}</td>
-              <td>{t.type}</td>
-              <td>₹{t.amount}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+        <div className="recent-history">
+          <h3>Recent Transactions</h3>
+          <ul>
+            {transactions.slice(0, 5).map((t, index) => (
+              <li key={index} className={t.type === "Income" ? "income" : "expense"}>
+                {t.type === "Income" ? `+₹${t.amount}` : `-₹${t.amount}`} - {t.category} {/* Changed to ₹ */}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
     </div>
   );
 }
