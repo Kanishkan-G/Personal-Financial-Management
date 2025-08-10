@@ -11,9 +11,9 @@ function App() {
       <div className="app-container">
         {/* Sidebar */}
         <div className="sidebar">
-          <h2>Dashboard</h2>
           <nav>
             <ul>
+              <li><Link to="/dashboard">Dashboard</Link></li>
               <li><Link to="/income">Income</Link></li>
               <li><Link to="/expense">Expense</Link></li>
             </ul>

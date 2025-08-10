@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import moment from 'moment'; // Import moment.js for date formatting
+import './Income.css';
 
 function Income() {
   const [income, setIncome] = useState([]);
