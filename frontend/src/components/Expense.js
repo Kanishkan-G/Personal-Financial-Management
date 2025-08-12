@@ -1,64 +1,88 @@
-// frontend/src/components/Expense.js
+// src/components/Expense.js
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import moment from 'moment'; // Import moment.js for date formatting
+import moment from 'moment';
 import './Expense.css';
 
 function Expense() {
   const [expenses, setExpenses] = useState([]);
-  const [totalExpenses, setTotalExpenses] = useState(0);
+  const [totalExpense, setTotalExpense] = useState(0);
   const [form, setForm] = useState({
-    type: 'Expense Type', // Default to 'Expense Type'
+    type: 'Food', // default option
     amount: '',
     date: ''
   });
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     fetchExpenses();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchExpenses = async () => {
     try {
+      setLoading(true);
       const res = await axios.get('http://localhost:8080/api/transactions');
-      // Filter for specific expense-related types
-      const expenseData = res.data.filter(transaction =>
-        ['Expense Type', 'Entertainment', 'Groceries', 'House Rent', 'Other Expenses'].includes(transaction.type)
-      );
+      const all = Array.isArray(res.data) ? res.data : [];
+
+      // Filter only "Expense" category
+      const expenseData = all.filter(tx => tx.category === 'Expense');
+
       setExpenses(expenseData);
-      const total = expenseData.reduce((acc, curr) => acc + curr.amount, 0);
-      setTotalExpenses(total);
+
+      const total = expenseData.reduce((acc, curr) => {
+        const amt = parseFloat(curr.amount);
+        return acc + (Number.isFinite(amt) ? amt : 0);
+      }, 0);
+
+      setTotalExpense(total);
     } catch (error) {
       console.error('Error fetching expenses', error);
+      setExpenses([]);
+      setTotalExpense(0);
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setForm(prev => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!form.amount || !form.date || !form.type) {
+      alert('Please fill all fields');
+      return;
+    }
+
     try {
       await axios.post('http://localhost:8080/api/transactions', {
-        ...form,
-        amount: parseFloat(form.amount),
+        category: 'Expense', // IMPORTANT for dashboard filtering
         type: form.type,
+        amount: parseFloat(form.amount),
+        date: form.date
       });
-      setForm({ type: 'Expense Type', amount: '', date: '' }); // Reset the form
-      fetchExpenses(); // Fetch the updated list of transactions
+
+      setForm({ type: 'Food', amount: '', date: '' });
+      fetchExpenses();
     } catch (error) {
       console.error('Error posting expense', error);
+      alert('Failed to post expense. Check console for details.');
     }
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm("Are you sure you want to delete this expense?")) {
-      try {
-        await axios.delete(`http://localhost:8080/api/transactions/${id}`);
-        fetchExpenses(); // Fetch the updated list after deletion
-      } catch (error) {
-        console.error('Error deleting expense', error);
-      }
+    if (!window.confirm('Are you sure you want to delete this expense?')) return;
+
+    try {
+      await axios.delete(`http://localhost:8080/api/transactions/${id}`);
+      fetchExpenses();
+    } catch (error) {
+      console.error('Error deleting expense', error);
+      alert('Failed to delete expense. Check console for details.');
     }
   };
 
@@ -67,53 +91,72 @@ function Expense() {
       <div className="expense-form">
         <h3>Post new Expense</h3>
         <form onSubmit={handleSubmit}>
-          <select
-            name="type"
-            value={form.type}
-            onChange={handleChange}
-            required
-          >
-            <option value="Expense Type">Expense Type</option>
-            <option value="Entertainment">Entertainment</option>
-            <option value="Groceries">Groceries</option>
-            <option value="House Rent">House Rent</option>
-            <option value="Other Expenses">Other Expenses</option>
-          </select>
-          <input
-            type="number"
-            name="amount"
-            placeholder="Enter amount"
-            value={form.amount}
-            onChange={handleChange}
-            required
-          />
-          <input
-            type="date"
-            name="date"
-            value={form.date}
-            onChange={handleChange}
-            required
-          />
+          <label>
+            Type
+            <select
+              name="type"
+              value={form.type}
+              onChange={handleChange}
+              required
+            >
+              <option value="Food">Food</option>
+              <option value="Transport">Transport</option>
+              <option value="Shopping">Shopping</option>
+              <option value="Bills">Bills</option>
+              <option value="Other Expense">Other Expense</option>
+            </select>
+          </label>
+
+          <label>
+            Amount
+            <input
+              type="number"
+              name="amount"
+              placeholder="Enter amount"
+              value={form.amount}
+              onChange={handleChange}
+              required
+              step="0.01"
+              min="0"
+            />
+          </label>
+
+          <label>
+            Date
+            <input
+              type="date"
+              name="date"
+              value={form.date}
+              onChange={handleChange}
+              required
+            />
+          </label>
+
           <button type="submit">Post Expense</button>
         </form>
       </div>
 
       <div className="expense-summary">
-        <h3>Total Expense: ₹{totalExpenses}</h3>
+        <h3>Total Expense: ₹{Number(totalExpense).toFixed(2)}</h3>
+        {loading && <p>Loading expenses...</p>}
       </div>
 
       <div className="past-expenses">
         <h3>Past Expenses</h3>
         <div className="expense-cards">
-          {expenses.map((expenseItem) => (
-            <div className="expense-card" key={expenseItem.id}>
-              <h4>{expenseItem.type}: ₹{expenseItem.amount}</h4>
-              <p>Date: {moment(expenseItem.date).format('DD-MM-YYYY')}</p>
-              <button onClick={() => handleDelete(expenseItem.id)} className="delete-btn">
-                Delete
-              </button>
-            </div>
-          ))}
+          {expenses.length === 0 ? (
+            <p>No expense records found.</p>
+          ) : (
+            expenses.map((expenseItem) => (
+              <div className="expense-card" key={expenseItem.id}>
+                <h4>{expenseItem.type}: ₹{Number(expenseItem.amount).toFixed(2)}</h4>
+                <p>Date: {expenseItem.date ? moment(expenseItem.date).format('DD-MM-YYYY') : 'N/A'}</p>
+                <button onClick={() => handleDelete(expenseItem.id)} className="delete-btn">
+                  Delete
+                </button>
+              </div>
+            ))
+          )}
         </div>
       </div>
     </div>

@@ -15,9 +15,9 @@ import "./Dashboard.css";
 
 function Dashboard() {
   const [incomeData, setIncomeData] = useState([]);
-  const [expenseData, setExpenseData] = useState([]);
+  const [expenseData, setExpenseData] = useState([]); // ✅ Added for expenses
   const [totalIncome, setTotalIncome] = useState(0);
-  const [totalExpense, setTotalExpense] = useState(0);
+  const [totalExpense, setTotalExpense] = useState(0); // ✅ Added for expenses
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -26,44 +26,43 @@ function Dashboard() {
         const res = await axios.get("http://localhost:8080/api/transactions");
         const transactions = Array.isArray(res.data) ? res.data : [];
 
-        // Filter income and expense
+        // ✅ Income processing (unchanged)
         const incomeList = transactions.filter(t => t.category === "Income");
-        const expenseList = transactions.filter(t => t.category === "Expense");
-
-        // ✅ Aggregate amounts by date for income
         const incomeMap = {};
         incomeList.forEach(item => {
           const dateKey = moment(item.date).format("DD-MM-YYYY");
           incomeMap[dateKey] = (incomeMap[dateKey] || 0) + (item.amount || 0);
         });
-
         const aggregatedIncome = Object.keys(incomeMap).map(date => ({
           date,
-          amount: incomeMap[date]
+          amount: incomeMap[date],
         }));
+        aggregatedIncome.sort((a, b) =>
+          moment(a.date, "DD-MM-YYYY") - moment(b.date, "DD-MM-YYYY")
+        );
+        setIncomeData(aggregatedIncome);
+        setTotalIncome(
+          incomeList.reduce((sum, item) => sum + (item.amount || 0), 0)
+        );
 
-        // ✅ Aggregate amounts by date for expense
+        // ✅ Expense processing (new but separate)
+        const expenseList = transactions.filter(t => t.category === "Expense");
         const expenseMap = {};
         expenseList.forEach(item => {
           const dateKey = moment(item.date).format("DD-MM-YYYY");
           expenseMap[dateKey] = (expenseMap[dateKey] || 0) + (item.amount || 0);
         });
-
         const aggregatedExpense = Object.keys(expenseMap).map(date => ({
           date,
-          amount: expenseMap[date]
+          amount: expenseMap[date],
         }));
-
-        // ✅ Sort by date in ascending order
-        aggregatedIncome.sort((a, b) => moment(a.date, "DD-MM-YYYY") - moment(b.date, "DD-MM-YYYY"));
-        aggregatedExpense.sort((a, b) => moment(a.date, "DD-MM-YYYY") - moment(b.date, "DD-MM-YYYY"));
-
-        setIncomeData(aggregatedIncome);
+        aggregatedExpense.sort((a, b) =>
+          moment(a.date, "DD-MM-YYYY") - moment(b.date, "DD-MM-YYYY")
+        );
         setExpenseData(aggregatedExpense);
-
-        // Totals
-        setTotalIncome(incomeList.reduce((sum, item) => sum + (item.amount || 0), 0));
-        setTotalExpense(expenseList.reduce((sum, item) => sum + (item.amount || 0), 0));
+        setTotalExpense(
+          expenseList.reduce((sum, item) => sum + (item.amount || 0), 0)
+        );
 
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
@@ -99,6 +98,7 @@ function Dashboard() {
       </div>
 
       <div className="charts">
+        {/* ✅ Income Over Time (unchanged) */}
         <div className="chart-container">
           <h3>Income Over Time</h3>
           {incomeData.length > 0 ? (
@@ -116,6 +116,7 @@ function Dashboard() {
           )}
         </div>
 
+        {/* ✅ Expense Over Time (new but separate) */}
         <div className="chart-container">
           <h3>Expense Over Time</h3>
           {expenseData.length > 0 ? (
