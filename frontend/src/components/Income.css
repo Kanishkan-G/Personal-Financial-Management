@@ -1,9 +1,8 @@
-/* frontend/src/App.css */
-
 .income-container {
   max-width: 1200px;
   margin: 0 auto;
   padding: 20px;
+  color: #222;
 }
 
 .income-form {
@@ -15,13 +14,26 @@
 
 .income-form h3 {
   margin-bottom: 20px;
+  color: #222;
 }
 
-.income-form input,
-.income-form select {
-  width: 100%;
-  padding: 12px;
+.income-form .form-group {
+  display: flex;
+  flex-direction: column;
   margin-bottom: 15px;
+}
+
+.income-form .form-group label {
+  font-weight: 500;
+  color: #222;
+  margin-bottom: 7px;
+}
+
+.income-form .form-group input,
+.income-form .form-group select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px;
   border-radius: 6px;
   border: 1px solid #ccc;
   font-size: 16px;
@@ -44,47 +56,68 @@
 
 .income-summary {
   margin-bottom: 30px;
+  color: #222;
 }
 
 .income-summary h3 {
   font-size: 24px;
   font-weight: bold;
+  color: #222;
 }
 
 .past-incomes {
   margin-top: 50px;
+  color: #222;
 }
 
 .past-incomes h3 {
   margin-bottom: 20px;
   font-size: 24px;
   font-weight: bold;
+  color: #222;
 }
 
-.income-cards {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 20px;
+.income-table-wrapper {
+  overflow-x: auto;
 }
 
-.income-card {
-  background-color: white;
-  padding: 20px;
+.income-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  color: #222;
+  margin-top: 10px;
   border-radius: 8px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  width: 250px;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.07);
 }
 
-.income-card h4 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: bold;
+.income-table th, .income-table td {
+  padding: 14px 12px;
+  border-bottom: 1px solid #e3e3e3;
+  text-align: left;
+  font-size: 16px;
 }
 
-.income-card p {
-  font-size: 14px;
-  color: gray;
+.income-table th {
+  background: #f4f4f4;
+  color: #222;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.income-table tr:last-child td {
+  border-bottom: none;
+}
+
+.delete-btn {
+  background-color: red;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.delete-btn:hover {
+  background-color: darkred;
 }

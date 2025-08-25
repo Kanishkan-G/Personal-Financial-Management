@@ -4,6 +4,7 @@
   padding: 20px;
 }
 
+/* Form styling, unchanged */
 .expense-form {
   background-color: #f4f4f4;
   padding: 20px;
@@ -15,11 +16,24 @@
   margin-bottom: 20px;
 }
 
-.expense-form input,
-.expense-form select {
-  width: 100%;
-  padding: 12px;
+/* Form fields aligned consistently */
+.expense-form .form-group {
+  display: flex;
+  flex-direction: column;
   margin-bottom: 15px;
+}
+
+.expense-form .form-group label {
+  font-weight: 500;
+  color: #222;
+  margin-bottom: 7px;
+}
+
+.expense-form .form-group input,
+.expense-form .form-group select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px;
   border-radius: 6px;
   border: 1px solid #ccc;
   font-size: 16px;
@@ -59,32 +73,37 @@
   font-weight: bold;
 }
 
-.expense-cards {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 20px;
+/* Table styles */
+.expense-table-wrapper {
+  overflow-x: auto;
 }
 
-.expense-card {
-  background-color: white;
-  padding: 20px;
+.expense-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  color: #222;
+  margin-top: 10px;
   border-radius: 8px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  width: 250px;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.07);
 }
 
-.expense-card h4 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: bold;
+.expense-table th, .expense-table td {
+  padding: 14px 12px;
+  border-bottom: 1px solid #e3e3e3;
+  text-align: left;
+  font-size: 16px;
 }
 
-.expense-card p {
-  font-size: 14px;
-  color: gray;
+.expense-table th {
+  background: #f4f4f4;
+  color: #222;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.expense-table tr:last-child td {
+  border-bottom: none;
 }
 
 .delete-btn {
@@ -94,7 +113,6 @@
   padding: 6px 12px;
   border-radius: 4px;
   cursor: pointer;
-  margin-top: 10px;
 }
 
 .delete-btn:hover {

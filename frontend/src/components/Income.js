@@ -8,7 +8,7 @@ function Income() {
   const [income, setIncome] = useState([]);
   const [totalIncome, setTotalIncome] = useState(0);
   const [form, setForm] = useState({
-    type: 'Salary', // default option (avoid placeholder value)
+    type: 'Salary',
     amount: '',
     date: ''
   });
@@ -24,17 +24,14 @@ function Income() {
       setLoading(true);
       const res = await axios.get('http://localhost:8080/api/transactions');
       const all = Array.isArray(res.data) ? res.data : [];
-
-      // Filter transactions where category === 'Income'
       const incomeData = all.filter(tx => tx.category === 'Income');
-
+      incomeData.sort((a, b) => moment(b.date).valueOf() - moment(a.date).valueOf());
       setIncome(incomeData);
 
       const total = incomeData.reduce((acc, curr) => {
         const amt = parseFloat(curr.amount);
         return acc + (Number.isFinite(amt) ? amt : 0);
       }, 0);
-
       setTotalIncome(total);
     } catch (error) {
       console.error('Error fetching income', error);
@@ -53,7 +50,6 @@ function Income() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // basic validation
     if (!form.amount || !form.date || !form.type) {
       alert('Please fill all fields');
       return;
@@ -61,13 +57,12 @@ function Income() {
 
     try {
       await axios.post('http://localhost:8080/api/transactions', {
-        category: 'Income',         // IMPORTANT: ensures dashboard can detect income
+        category: 'Income',
         type: form.type,
         amount: parseFloat(form.amount),
         date: form.date
       });
 
-      // Reset form and refresh list
       setForm({ type: 'Salary', amount: '', date: '' });
       fetchIncome();
     } catch (error) {
@@ -93,47 +88,50 @@ function Income() {
       <div className="income-form">
         <h3>Post new Income</h3>
         <form onSubmit={handleSubmit}>
-          <label>
-            Type
-            <select
-              name="type"
-              value={form.type}
-              onChange={handleChange}
-              required
-            >
-              <option value="Salary">Salary</option>
-              <option value="Bonus">Bonus</option>
-              <option value="Gift">Gift</option>
-              <option value="Freelance">Freelance</option>
-              <option value="Other Income">Other Income</option>
-            </select>
-          </label>
-
-          <label>
-            Amount
-            <input
-              type="number"
-              name="amount"
-              placeholder="Enter amount"
-              value={form.amount}
-              onChange={handleChange}
-              required
-              step="0.01"
-              min="0"
-            />
-          </label>
-
-          <label>
-            Date
-            <input
-              type="date"
-              name="date"
-              value={form.date}
-              onChange={handleChange}
-              required
-            />
-          </label>
-
+          <div className="form-group">
+            <label>
+              Type
+              <select
+                name="type"
+                value={form.type}
+                onChange={handleChange}
+                required
+              >
+                <option value="Salary">Salary</option>
+                <option value="Bonus">Bonus</option>
+                <option value="Gift">Gift</option>
+                <option value="Freelance">Freelance</option>
+                <option value="Other Income">Other Income</option>
+              </select>
+            </label>
+          </div>
+          <div className="form-group">
+            <label>
+              Amount
+              <input
+                type="number"
+                name="amount"
+                placeholder="Enter amount"
+                value={form.amount}
+                onChange={handleChange}
+                required
+                step="0.01"
+                min="0"
+              />
+            </label>
+          </div>
+          <div className="form-group">
+            <label>
+              Date
+              <input
+                type="date"
+                name="date"
+                value={form.date}
+                onChange={handleChange}
+                required
+              />
+            </label>
+          </div>
           <button type="submit">Post Income</button>
         </form>
       </div>
@@ -145,21 +143,36 @@ function Income() {
 
       <div className="past-incomes">
         <h3>Past Incomes</h3>
-        <div className="income-cards">
-          {income.length === 0 ? (
-            <p>No income records found.</p>
-          ) : (
-            income.map((incomeItem) => (
-              <div className="income-card" key={incomeItem.id}>
-                <h4>{incomeItem.type}: ₹{Number(incomeItem.amount).toFixed(2)}</h4>
-                <p>Date: {incomeItem.date ? moment(incomeItem.date).format('DD-MM-YYYY') : 'N/A'}</p>
-                <button onClick={() => handleDelete(incomeItem.id)} className="delete-btn">
-                  Delete
-                </button>
-              </div>
-            ))
-          )}
-        </div>
+        {income.length === 0 ? (
+          <p>No income records found.</p>
+        ) : (
+          <div className="income-table-wrapper">
+            <table className="income-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Type</th>
+                  <th>Amount (₹)</th>
+                  <th>Delete</th>
+                </tr>
+              </thead>
+              <tbody>
+                {income.map((incomeItem) => (
+                  <tr key={incomeItem.id}>
+                    <td>{incomeItem.date ? moment(incomeItem.date).format('DD-MM-YYYY') : 'N/A'}</td>
+                    <td>{incomeItem.type}</td>
+                    <td>{Number(incomeItem.amount).toFixed(2)}</td>
+                    <td>
+                      <button onClick={() => handleDelete(incomeItem.id)} className="delete-btn">
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );

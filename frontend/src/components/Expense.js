@@ -8,7 +8,7 @@ function Expense() {
   const [expenses, setExpenses] = useState([]);
   const [totalExpense, setTotalExpense] = useState(0);
   const [form, setForm] = useState({
-    type: 'Food', // default option
+    type: 'Food',
     amount: '',
     date: ''
   });
@@ -24,17 +24,14 @@ function Expense() {
       setLoading(true);
       const res = await axios.get('http://localhost:8080/api/transactions');
       const all = Array.isArray(res.data) ? res.data : [];
-
-      // Filter only "Expense" category
       const expenseData = all.filter(tx => tx.category === 'Expense');
-
+      expenseData.sort((a, b) => moment(b.date).valueOf() - moment(a.date).valueOf());
       setExpenses(expenseData);
 
       const total = expenseData.reduce((acc, curr) => {
         const amt = parseFloat(curr.amount);
         return acc + (Number.isFinite(amt) ? amt : 0);
       }, 0);
-
       setTotalExpense(total);
     } catch (error) {
       console.error('Error fetching expenses', error);
@@ -60,7 +57,7 @@ function Expense() {
 
     try {
       await axios.post('http://localhost:8080/api/transactions', {
-        category: 'Expense', // IMPORTANT for dashboard filtering
+        category: 'Expense',
         type: form.type,
         amount: parseFloat(form.amount),
         date: form.date
@@ -91,47 +88,50 @@ function Expense() {
       <div className="expense-form">
         <h3>Post new Expense</h3>
         <form onSubmit={handleSubmit}>
-          <label>
-            Type
-            <select
-              name="type"
-              value={form.type}
-              onChange={handleChange}
-              required
-            >
-              <option value="Food">Food</option>
-              <option value="Transport">Transport</option>
-              <option value="Shopping">Shopping</option>
-              <option value="Bills">Bills</option>
-              <option value="Other Expense">Other Expense</option>
-            </select>
-          </label>
-
-          <label>
-            Amount
-            <input
-              type="number"
-              name="amount"
-              placeholder="Enter amount"
-              value={form.amount}
-              onChange={handleChange}
-              required
-              step="0.01"
-              min="0"
-            />
-          </label>
-
-          <label>
-            Date
-            <input
-              type="date"
-              name="date"
-              value={form.date}
-              onChange={handleChange}
-              required
-            />
-          </label>
-
+          <div className="form-group">
+            <label>
+              Type
+              <select
+                name="type"
+                value={form.type}
+                onChange={handleChange}
+                required
+              >
+                <option value="Food">Food</option>
+                <option value="Transport">Transport</option>
+                <option value="Shopping">Shopping</option>
+                <option value="Bills">Bills</option>
+                <option value="Other Expense">Other Expense</option>
+              </select>
+            </label>
+          </div>
+          <div className="form-group">
+            <label>
+              Amount
+              <input
+                type="number"
+                name="amount"
+                placeholder="Enter amount"
+                value={form.amount}
+                onChange={handleChange}
+                required
+                step="0.01"
+                min="0"
+              />
+            </label>
+          </div>
+          <div className="form-group">
+            <label>
+              Date
+              <input
+                type="date"
+                name="date"
+                value={form.date}
+                onChange={handleChange}
+                required
+              />
+            </label>
+          </div>
           <button type="submit">Post Expense</button>
         </form>
       </div>
@@ -143,21 +143,36 @@ function Expense() {
 
       <div className="past-expenses">
         <h3>Past Expenses</h3>
-        <div className="expense-cards">
-          {expenses.length === 0 ? (
-            <p>No expense records found.</p>
-          ) : (
-            expenses.map((expenseItem) => (
-              <div className="expense-card" key={expenseItem.id}>
-                <h4>{expenseItem.type}: ₹{Number(expenseItem.amount).toFixed(2)}</h4>
-                <p>Date: {expenseItem.date ? moment(expenseItem.date).format('DD-MM-YYYY') : 'N/A'}</p>
-                <button onClick={() => handleDelete(expenseItem.id)} className="delete-btn">
-                  Delete
-                </button>
-              </div>
-            ))
-          )}
-        </div>
+        {expenses.length === 0 ? (
+          <p>No expense records found.</p>
+        ) : (
+          <div className="expense-table-wrapper">
+            <table className="expense-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Type</th>
+                  <th>Amount (₹)</th>
+                  <th>Delete</th>
+                </tr>
+              </thead>
+              <tbody>
+                {expenses.map((expenseItem) => (
+                  <tr key={expenseItem.id}>
+                    <td>{expenseItem.date ? moment(expenseItem.date).format('DD-MM-YYYY') : 'N/A'}</td>
+                    <td>{expenseItem.type}</td>
+                    <td>{Number(expenseItem.amount).toFixed(2)}</td>
+                    <td>
+                      <button onClick={() => handleDelete(expenseItem.id)} className="delete-btn">
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );
