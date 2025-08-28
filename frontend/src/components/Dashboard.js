@@ -231,22 +231,38 @@ function Dashboard() {
       )}
 
       <div className="charts-container">
-        {/* Bar Chart */}
-        <div className="chart-box bar-chart-box">
-          <h3>Overall Income vs Expense</h3>
-          {combinedData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={350}>
-              <BarChart data={combinedData} barGap={6}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="Income" fill="#4CAF50" name="Income" />
-                <Bar dataKey="Expense" fill="#F44336" name="Expense" />
-              </BarChart>
-            </ResponsiveContainer>
+        {/* Table (left) + Pie (right) */}
+        <div className="chart-box table-box">
+          <h3>Bank Statements</h3>
+          {filteredStatements.length === 0 ? (
+            <p className="no-data">No statements found.</p>
           ) : (
-            <p className="no-data">No transaction data available</p>
+            <div className="table-wrapper">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Description</th>
+                    <th>Category</th>
+                    <th>Amount</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredStatements.map((s) => (
+                    <tr key={s.id}>
+                      <td>{s.date ? moment(s.date).format('DD-MM-YYYY') : 'N/A'}</td>
+                      <td>{s.description}</td>
+                      <td>{s.category}</td>
+                      <td>{Number(s.amount).toFixed(2)}</td>
+                      <td>
+                        <button onClick={() => handleDelete(s.id)} className="delete-btn">Delete</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
 
@@ -281,40 +297,25 @@ function Dashboard() {
             <p className="no-data">No expense category data available</p>
           )}
         </div>
-      </div>
 
-      <div className="table-container">
-        <h3>Bank Statements</h3>
-        {filteredStatements.length === 0 ? (
-          <p className="no-data">No statements found.</p>
-        ) : (
-          <div className="table-wrapper">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Description</th>
-                  <th>Category</th>
-                  <th>Amount</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredStatements.map((s) => (
-                  <tr key={s.id}>
-                    <td>{s.date ? moment(s.date).format('DD-MM-YYYY') : 'N/A'}</td>
-                    <td>{s.description}</td>
-                    <td>{s.category}</td>
-                    <td>{Number(s.amount).toFixed(2)}</td>
-                    <td>
-                      <button onClick={() => handleDelete(s.id)} className="delete-btn">Delete</button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        {/* Bar Chart (bottom, full width) */}
+        <div className="chart-box bar-chart-box">
+          <h3>Overall Income vs Expense</h3>
+          {combinedData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={350}>
+              <BarChart data={combinedData} barGap={6}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="Income" fill="#4CAF50" name="Income" />
+                <Bar dataKey="Expense" fill="#F44336" name="Expense" />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <p className="no-data">No transaction data available</p>
+          )}
+        </div>
       </div>
     </div>
   );
