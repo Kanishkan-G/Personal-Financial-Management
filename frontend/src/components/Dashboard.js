@@ -40,6 +40,7 @@ function Dashboard() {
   const [uploading, setUploading] = useState(false);
   const [file, setFile] = useState(null);
   const [filteredStatements, setFilteredStatements] = useState([]);
+  const [suggestions, setSuggestions] = useState({ expenseSuggestion: '', incomeSuggestion: '' });
 
   // Fetch all bank statements
   const fetchStatements = async () => {
@@ -131,14 +132,21 @@ function Dashboard() {
     formData.append('file', file);
     try {
       setUploading(true);
-      await axios.post('http://localhost:8080/api/bankstatements/upload', formData, {
+      const res = await axios.post('http://localhost:8080/api/bankstatements/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
+      if (res?.data) {
+        setSuggestions({
+          expenseSuggestion: res.data.expenseSuggestion || '',
+          incomeSuggestion: res.data.incomeSuggestion || ''
+        });
+      }
       setFile(null);
       await fetchStatements();
     } catch (err) {
       console.error('Upload failed', err);
-      alert('Upload failed');
+      const msg = err?.response?.data?.error || err?.message || 'Upload failed';
+      alert(msg);
     } finally {
       setUploading(false);
     }
@@ -214,6 +222,13 @@ function Dashboard() {
           <p>₹{totalExpense.toFixed(2)}</p>
         </FadeContent>
       </div>
+
+      {(suggestions.expenseSuggestion || suggestions.incomeSuggestion) && (
+        <div className="suggestions">
+          {suggestions.expenseSuggestion && <p>{suggestions.expenseSuggestion}</p>}
+          {suggestions.incomeSuggestion && <p>{suggestions.incomeSuggestion}</p>}
+        </div>
+      )}
 
       <div className="charts-container">
         {/* Bar Chart */}

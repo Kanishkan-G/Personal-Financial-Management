@@ -7,6 +7,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Map;
+import java.time.YearMonth;
 
 @RestController
 @RequestMapping("/api/bankstatements")
@@ -19,12 +20,14 @@ public class BankStatementController {
     }
 
     @PostMapping("/upload")
-    public String uploadCSV(@RequestParam("file") MultipartFile file) {
+    public Map<String, String> uploadCSV(@RequestParam("file") MultipartFile file) {
         try {
             service.saveCSV(file);
-            return "CSV uploaded and saved!";
+            // After upload, compute suggestions for the uploaded month using current month as reference
+            YearMonth currentMonth = YearMonth.now();
+            return service.getSuggestionsForMonth(currentMonth);
         } catch (Exception e) {
-            return "CSV upload failed: " + e.getMessage();
+            return Map.of("error", "CSV upload failed: " + e.getMessage());
         }
     }
 

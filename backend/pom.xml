@@ -97,6 +97,13 @@
 			<version>0.11.5</version>
 			<scope>runtime</scope>
 		</dependency>
+
+		<!-- Smile ML (lightweight stats for trend analysis) -->
+		<dependency>
+			<groupId>com.github.haifengl</groupId>
+			<artifactId>smile-core</artifactId>
+			<version>2.6.0</version>
+		</dependency>
 	</dependencies>
 
 	<build>
