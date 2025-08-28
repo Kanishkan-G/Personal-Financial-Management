@@ -29,34 +29,38 @@ const COLORS = [
 ];
 
 function Dashboard() {
-  const [allTransactions, setAllTransactions] = useState([]);
+  const [statements, setStatements] = useState([]);
   const [combinedData, setCombinedData] = useState([]);
   const [expenseCategoryData, setExpenseCategoryData] = useState([]);
   const [totalIncome, setTotalIncome] = useState(0);
   const [totalExpense, setTotalExpense] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [filterStart, setFilterStart] = useState(""); // Format: "YYYY-MM-DD"
+  const [filterStart, setFilterStart] = useState("");
   const [filterEnd, setFilterEnd] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const [file, setFile] = useState(null);
+  const [filteredStatements, setFilteredStatements] = useState([]);
 
-  // Fetch all transactions only once
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        const res = await axios.get("http://localhost:8080/api/transactions");
-        setAllTransactions(Array.isArray(res.data) ? res.data : []);
-      } catch (error) {
-        console.error("Error fetching dashboard data:", error);
-      } finally {
-        setLoading(false);
-      }
+  // Fetch all bank statements
+  const fetchStatements = async () => {
+    try {
+      const res = await axios.get("http://localhost:8080/api/bankstatements");
+      setStatements(Array.isArray(res.data) ? res.data : []);
+    } catch (error) {
+      console.error("Error fetching statements:", error);
+    } finally {
+      setLoading(false);
     }
+  };
 
-    fetchData();
+  useEffect(() => {
+    fetchStatements();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Derive filtered data based on date range (or everything by default)
   useEffect(() => {
-    let filtered = allTransactions;
+    let filtered = statements;
 
     if (filterStart) {
       filtered = filtered.filter((tx) =>
@@ -76,10 +80,10 @@ function Dashboard() {
       if (!dataMap[dateKey]) {
         dataMap[dateKey] = { date: dateKey, Income: 0, Expense: 0 };
       }
-      if (tx.category === "Income") {
+      if ((tx.amount || 0) >= 0) {
         dataMap[dateKey].Income += tx.amount || 0;
-      } else if (tx.category === "Expense") {
-        dataMap[dateKey].Expense += tx.amount || 0;
+      } else {
+        dataMap[dateKey].Expense += Math.abs(tx.amount || 0);
       }
     });
     const mergedData = Object.values(dataMap).sort(
@@ -89,11 +93,11 @@ function Dashboard() {
 
     // Totals
     const totalInc = filtered
-      .filter((t) => t.category === "Income")
+      .filter((t) => (t.amount || 0) > 0)
       .reduce((sum, t) => sum + (t.amount || 0), 0);
     const totalExp = filtered
-      .filter((t) => t.category === "Expense")
-      .reduce((sum, t) => sum + (t.amount || 0), 0);
+      .filter((t) => (t.amount || 0) < 0)
+      .reduce((sum, t) => sum + Math.abs(t.amount || 0), 0);
 
     setTotalIncome(totalInc);
     setTotalExpense(totalExp);
@@ -101,10 +105,10 @@ function Dashboard() {
     // Pie Chart aggregation
     const expenseByCategory = {};
     filtered
-      .filter((t) => t.category === "Expense")
+      .filter((t) => (t.amount || 0) < 0)
       .forEach((tx) => {
-        const cat = tx.type || "Other";
-        expenseByCategory[cat] = (expenseByCategory[cat] || 0) + (tx.amount || 0);
+        const cat = tx.category || "Other";
+        expenseByCategory[cat] = (expenseByCategory[cat] || 0) + Math.abs(tx.amount || 0);
       });
 
     const pieData = Object.entries(expenseByCategory).map(([key, value]) => ({
@@ -112,7 +116,44 @@ function Dashboard() {
       value,
     }));
     setExpenseCategoryData(pieData);
-  }, [allTransactions, filterStart, filterEnd]);
+
+    // Table: sort by date (newest first) and store filtered list
+    const sortedForTable = [...filtered].sort(
+      (a, b) => moment(b.date).valueOf() - moment(a.date).valueOf()
+    );
+    setFilteredStatements(sortedForTable);
+  }, [statements, filterStart, filterEnd]);
+
+  const handleUpload = async (e) => {
+    e.preventDefault();
+    if (!file) return;
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+      setUploading(true);
+      await axios.post('http://localhost:8080/api/bankstatements/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      setFile(null);
+      await fetchStatements();
+    } catch (err) {
+      console.error('Upload failed', err);
+      alert('Upload failed');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Delete this statement entry?')) return;
+    try {
+      await axios.delete(`http://localhost:8080/api/bankstatements/${id}`);
+      await fetchStatements();
+    } catch (err) {
+      console.error('Delete failed', err);
+      alert('Delete failed');
+    }
+  };
 
   if (loading) {
     return <div className="dashboard-loading">Loading dashboard...</div>;
@@ -121,6 +162,13 @@ function Dashboard() {
   return (
     <div className="dashboard-container">
       <h1>Dashboard</h1>
+
+      <div className="upload-bar">
+        <form onSubmit={handleUpload}>
+          <input type="file" accept=".csv" onChange={(e) => setFile(e.target.files?.[0] || null)} />
+          <button type="submit" disabled={uploading || !file}>{uploading ? 'Uploading...' : 'Upload CSV'}</button>
+        </form>
+      </div>
       
       {/* Date Range Filters */}
       <div className="date-filter-bar">
@@ -170,7 +218,7 @@ function Dashboard() {
       <div className="charts-container">
         {/* Bar Chart */}
         <div className="chart-box bar-chart-box">
-          <h3>Overall Transactions</h3>
+          <h3>Overall Income vs Expense</h3>
           {combinedData.length > 0 ? (
             <ResponsiveContainer width="100%" height={350}>
               <BarChart data={combinedData} barGap={6}>
@@ -218,6 +266,40 @@ function Dashboard() {
             <p className="no-data">No expense category data available</p>
           )}
         </div>
+      </div>
+
+      <div className="table-container">
+        <h3>Bank Statements</h3>
+        {filteredStatements.length === 0 ? (
+          <p className="no-data">No statements found.</p>
+        ) : (
+          <div className="table-wrapper">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Description</th>
+                  <th>Category</th>
+                  <th>Amount</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredStatements.map((s) => (
+                  <tr key={s.id}>
+                    <td>{s.date ? moment(s.date).format('DD-MM-YYYY') : 'N/A'}</td>
+                    <td>{s.description}</td>
+                    <td>{s.category}</td>
+                    <td>{Number(s.amount).toFixed(2)}</td>
+                    <td>
+                      <button onClick={() => handleDelete(s.id)} className="delete-btn">Delete</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );

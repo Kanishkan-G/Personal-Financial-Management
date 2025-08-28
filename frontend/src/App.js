@@ -1,30 +1,25 @@
 // frontend/src/App.js
-import React, { useState } from 'react';
+import React from 'react';
 import './App.css';
 import GradientText from './components/GradientText';
 import { BrowserRouter as Router, Route, Routes, Link, Navigate } from 'react-router-dom';
-import Income from './components/Income';
-import Expense from './components/Expense';
 import Dashboard from './components/Dashboard';
+import Login from './components/Login';
+import Register from './components/Register';
+import { useAuth } from './AuthContext';
+
+function PrivateRoute({ children }) {
+  const { isAuthenticated } = useAuth();
+  return isAuthenticated ? children : <Navigate to="/login" replace />;
+}
 
 function App() {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const { isAuthenticated, logout } = useAuth();
 
   return (
     <Router>
-      <div className={`app-container${sidebarOpen ? '' : ' sidebar-closed'}`}>
-        {!sidebarOpen && (
-          <button
-            className="sidebar-toggle-open"
-            onClick={() => setSidebarOpen(true)}
-            aria-label="Open sidebar"
-          >
-            →
-          </button>
-        )}
-
-        {/* Sidebar */}
-        <div className={`sidebar${sidebarOpen ? '' : ' closed'}`}>
+      <div className="app-container">
+        <header className="topbar">
           <div className="pf-tracker-title-row">
             <GradientText
               colors={["#800080, #00FFFF"]}
@@ -34,31 +29,29 @@ function App() {
             >
               PF Tracker
             </GradientText>
-            {sidebarOpen && (
-              <button
-                className="sidebar-toggle-close"
-                onClick={() => setSidebarOpen(false)}
-                aria-label="Close sidebar"
-              >
-                ←
-              </button>
-            )}
           </div>
           <nav>
-            <ul>
-              <li><Link to="/">Dashboard</Link></li>
-              <li><Link to="/income">Income</Link></li>
-              <li><Link to="/expense">Expense</Link></li>
+            <ul className="topbar-nav">
+              {isAuthenticated ? (
+                <>
+                  <li><Link to="/">Dashboard</Link></li>
+                  <li><button onClick={logout} className="linklike">Logout</button></li>
+                </>
+              ) : (
+                <>
+                  <li><Link to="/login">Login</Link></li>
+                  <li><Link to="/register">Register</Link></li>
+                </>
+              )}
             </ul>
           </nav>
-        </div>
+        </header>
 
-        {/* Main content */}
         <div className="content">
           <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/income" element={<Income />} />
-            <Route path="/expense" element={<Expense />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
             <Route path="/dashboard" element={<Navigate to="/" />} />
           </Routes>
         </div>
