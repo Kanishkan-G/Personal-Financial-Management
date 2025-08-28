@@ -16,6 +16,8 @@ import {
 } from "recharts";
 import moment from "moment";
 import "./Dashboard.css";
+import html2canvas from 'html2canvas';
+import { saveAs } from 'file-saver';
 
 const COLORS = [
   "#0088FE",
@@ -41,6 +43,7 @@ function Dashboard() {
   const [file, setFile] = useState(null);
   const [filteredStatements, setFilteredStatements] = useState([]);
   const [suggestions, setSuggestions] = useState({ expenseSuggestion: '', incomeSuggestion: '' });
+  const [selectedIds, setSelectedIds] = useState([]);
 
   // Fetch all bank statements
   const fetchStatements = async () => {
@@ -163,6 +166,63 @@ function Dashboard() {
     }
   };
 
+  const handleToggle = (id) => {
+    setSelectedIds((prev) => (
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    ));
+  };
+
+  const handleToggleAll = () => {
+    if (selectedIds.length === filteredStatements.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(filteredStatements.map((s) => s.id));
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+    if (!window.confirm(`Delete ${selectedIds.length} selected entr${selectedIds.length === 1 ? 'y' : 'ies'}?`)) return;
+    try {
+      await Promise.all(selectedIds.map((id) => axios.delete(`http://localhost:8080/api/bankstatements/${id}`)));
+      setSelectedIds([]);
+      await fetchStatements();
+    } catch (err) {
+      console.error('Bulk delete failed', err);
+      alert('Bulk delete failed');
+    }
+  };
+
+  const exportAsImage = async () => {
+    const dash = document.querySelector('.dashboard-container');
+    if (!dash) return;
+    const canvas = await html2canvas(dash, { scale: 2, useCORS: true });
+    canvas.toBlob((blob) => {
+      if (blob) saveAs(blob, 'dashboard.jpg');
+    }, 'image/jpeg', 0.95);
+  };
+
+  const exportAsPdf = async () => {
+    const dash = document.querySelector('.dashboard-container');
+    if (!dash) return;
+    const canvas = await html2canvas(dash, { scale: 2, useCORS: true });
+    canvas.toBlob(async (blob) => {
+      if (!blob) return;
+      const form = new FormData();
+      form.append('image', new File([blob], 'dashboard.jpg', { type: 'image/jpeg' }));
+      try {
+        const res = await axios.post('http://localhost:8080/api/export/pdf?filename=dashboard.pdf', form, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+          responseType: 'blob'
+        });
+        saveAs(res.data, 'dashboard.pdf');
+      } catch (e) {
+        console.error('PDF export failed', e);
+        alert('Failed to export PDF');
+      }
+    }, 'image/jpeg', 0.95);
+  };
+
   if (loading) {
     return <div className="dashboard-loading">Loading dashboard...</div>;
   }
@@ -170,6 +230,11 @@ function Dashboard() {
   return (
     <div className="dashboard-container">
       <h1>Dashboard</h1>
+
+      <div style={{display:'flex', gap:12, marginBottom:10}}>
+        <button onClick={exportAsImage}>Download JPG</button>
+        <button onClick={exportAsPdf}>Download PDF</button>
+      </div>
 
       <div className="upload-bar">
         <form onSubmit={handleUpload}>
@@ -233,7 +298,12 @@ function Dashboard() {
       <div className="charts-container">
         {/* Table (left) + Pie (right) */}
         <div className="chart-box table-box">
-          <h3>Bank Statements</h3>
+          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+            <h3>Bank Statements</h3>
+            <button onClick={handleBulkDelete} disabled={selectedIds.length===0} className="delete-btn">
+              {selectedIds.length>0 ? `Delete Selected (${selectedIds.length})` : 'Delete Selected'}
+            </button>
+          </div>
           {filteredStatements.length === 0 ? (
             <p className="no-data">No statements found.</p>
           ) : (
@@ -241,23 +311,25 @@ function Dashboard() {
               <table className="data-table">
                 <thead>
                   <tr>
+                    <th>
+                      <input type="checkbox" onChange={handleToggleAll} checked={selectedIds.length===filteredStatements.length && filteredStatements.length>0} />
+                    </th>
                     <th>Date</th>
                     <th>Description</th>
                     <th>Category</th>
                     <th>Amount</th>
-                    <th>Action</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredStatements.map((s) => (
                     <tr key={s.id}>
+                      <td>
+                        <input type="checkbox" checked={selectedIds.includes(s.id)} onChange={() => handleToggle(s.id)} />
+                      </td>
                       <td>{s.date ? moment(s.date).format('DD-MM-YYYY') : 'N/A'}</td>
                       <td>{s.description}</td>
                       <td>{s.category}</td>
                       <td>{Number(s.amount).toFixed(2)}</td>
-                      <td>
-                        <button onClick={() => handleDelete(s.id)} className="delete-btn">Delete</button>
-                      </td>
                     </tr>
                   ))}
                 </tbody>
